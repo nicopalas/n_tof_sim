@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+find . -type f \( -name "*.cpp" -o -name "*.cxx" -o -name "*.C" -o -name "*.h" \) \
+    -print0 |
+    xargs -0 -L 1 clang-format-16 -i
+
+echo "Use git add -A ; git commit -m \"clang-format all files\" --author=\"white space <whitespace@example.com>\" to commit changes."
