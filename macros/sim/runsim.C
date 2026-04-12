@@ -100,8 +100,8 @@ void runsim(Int_t nEvents = 1)
     cave->SetGeometryFileName("r3b_cave_vacuum.geo");
     run->AddModule(cave);
 
-    // auto* ppacs = new NTOFPpacs(fPpacsGeo);
-    // run->AddModule(ppacs);
+    auto* ppacs = new NTOFPpacs(fPpacsGeo);
+    run->AddModule(ppacs);
 
     // -----   Create PrimaryGenerator   --------------------------------------
 
