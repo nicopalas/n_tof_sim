@@ -1,260 +1,181 @@
-/******************************************************************************
- *                                                                            *
- *             This software is distributed under the terms of the            *
- *             GNU Lesser General Public Licence (LGPL) version 2.1,          *
- *                    copied verbatim in the file "LICENSE".                  *
- *                                                                            *
- ******************************************************************************/
-
 #include "TGeoManager.h"
 #include "TMath.h"
-#include <iomanip>
+#include "TSystem.h"
+#include "TFile.h"
+#include "TROOT.h"
 #include <iostream>
 
 void create_ntof_geo(const char* geoTag = "v2026.04")
 {
-    auto fRefRot = new TGeoRotation();
     TGeoManager* gGeoMan = nullptr;
+    double worldX = 50.;
+    double worldY = 50.;
+    double worldZ = 600.;
 
-    Double_t worldLength = 60.;               // 60cm^3 world box side
-    Double_t chamberInnerRadius = 35.0;       // cylindrical inner radius (cm)
-    Double_t chamberThickness = 0.6;          // chamber aluminum thickness (cm)
-    Double_t chamberPlateRadius = 31.0;       // back stainless steel part (cm)
-    Double_t chamberPlateThickness = 2.0;     // back part thickness (cm)
-    Double_t chamberHalfLength = 23.5;        // half-length APPROX. (cm)
-    Double_t backwardsBeamWindowRadius = 2.5; // inlet radius(cm)
-    Double_t forwardsBeamWindowRadius = 3.5;  // outlet radius (cm)
-    Double_t inletWindowRadius = 2.45;        // inlet berylium window radius (cm)
-    Double_t inletWindowThickness = 0.05;     // inlet berylium window thickness (cm)
-    Double_t inletWindowCenter = -chamberHalfLength - chamberPlateThickness - 1.0 - inletWindowRadius -
-                                 inletWindowThickness; // Z coordinate of inlet window center (cm)
-    Double_t outletWindowRadius = 3.45;                // inlet berylium window radius (cm)
-    Double_t outletWindowThickness = 0.05;             // inlet berylium window thickness (cm)
-    Double_t outletWindowCenter =
-        chamberHalfLength + outletWindowRadius + outletWindowThickness; // Z coordinate of inlet window center (cm)
+    double ppac_x = 20.0;
+    double ppac_y= 20.0;
+    double mylar_thickness = 1.7e-4;
+    double gas_gap = 0.32;
+    double ppac_z = 2*gas_gap+3*mylar_thickness;
 
-    Double_t anodeThickness = 0.10;                  //(cm)
-    Double_t cathodeThickness = 0.10;                //(cm)
-    Double_t anodeRadius = 32.4;                     // back stainless steel part (cm)
-    Double_t positionAnode = -10.0;                  // anode center Z position (cm)
-    Double_t positionCathode = positionAnode + 21.6; // anode center Z position (cm)
-    Double_t positionGrid = positionAnode + 0.3;     // grid center Z position (cm)
-    Double_t gridThickness = 0.001;                  // 55 microm, 1mm step, RECALCULATE!!! (cm)
-    Double_t ringRadius = 34.0;                      // field mapping rings radius (cm)
-    Double_t ringGauge = 0.1;                        // field mapping rings gauge (diameter) (cm)
-    Double_t ringDistance = 1.8;                     // distance between rings (cm)
-
-    // -------   Load media from media file   -----------------------------------
+// -------   Load media from media file   -----------------------------------
     FairGeoLoader* geoLoad = new FairGeoLoader("TGeo", "FairGeoLoader");
     FairGeoInterface* geoFace = geoLoad->getGeoInterface();
+
+
     TString geoPath = gSystem->Getenv("VMCWORKDIR");
-    TString medFile = geoPath + "/geometry/media_r3b.geo";
+    std::cout << "Loading geomedia" << std::endl;
+    TString medFile = "/nucl_lustre/nicolas_sanchez/R3BRoot/R3BRoot/geometry/media_r3b.geo";
     geoFace->setMediaFile(medFile);
     geoFace->readMedia();
+
     gGeoMan = gGeoManager;
     // --------------------------------------------------------------------------
 
     // -------   Geometry file name (output)   ----------------------------------
     TString geoFileName = geoPath + "/geometry/target_area_ppacs_";
-    geoFileName = geoFileName + geoTag + ".geo.root";
-    // --------------------------------------------------------------------------
+    geoFileName += geoTag;
+    geoFileName += ".geo.root";
 
     // -----------------   Get and create the required media    -----------------
     FairGeoMedia* geoMedia = geoFace->getMedia();
     FairGeoBuilder* geoBuild = geoLoad->getGeoBuilder();
-
-    FairGeoMedium* mAir = geoMedia->getMedium("Air");
-    if (!mAir)
-        Fatal("Main", "FairMedium Air not found");
-    geoBuild->createMedium(mAir);
-    TGeoMedium* pAirMedium = gGeoMan->GetMedium("Air");
-    if (!pAirMedium)
-        Fatal("Main", "Medium Air not found");
-
-    FairGeoMedium* mCar = geoMedia->getMedium("CarbonFibre");
-    if (!mCar)
-        Fatal("Main", "FairMedium CarbonFibre not found");
-    geoBuild->createMedium(mCar);
-    TGeoMedium* pCarbonFibreMedium = gGeoMan->GetMedium("CarbonFibre");
-    if (!pCarbonFibreMedium)
-        Fatal("Main", "Medium CarbonFibre not found");
-
-    FairGeoMedium* mTfl = geoMedia->getMedium("Tefflon");
-    if (!mTfl)
-        Fatal("Main", "FairMedium Tefflon not found");
-    geoBuild->createMedium(mTfl);
-    TGeoMedium* pWrappingMedium = gGeoMan->GetMedium("Tefflon");
-    if (!pWrappingMedium)
-        Fatal("Main", "Medium Tefflon not found");
-
+    std::cout << "Beginning materials" << std::endl;
+    // octofluoropropane
+    FairGeoMedium* mOcto = geoMedia->getMedium("octofluoropropane");
+    if (!mOcto)
+        Fatal("Main", "FairMedium octofluoropropane not found");
+    geoBuild->createMedium(mOcto);
+    TGeoMedium* pMedOcto = gGeoMan->GetMedium("octofluoropropane");
+    if (!pMedOcto)
+        Fatal("Main", "Medium octofluoropropane not found");
+    std::cout << "Octofluropropane" << std::endl;
+    // kapton
+    FairGeoMedium* mKapton = geoMedia->getMedium("kapton");
+    if (!mKapton)
+        Fatal("Main", "FairMedium kapton not found");
+    geoBuild->createMedium(mKapton);
+    TGeoMedium* pMedKapton = gGeoMan->GetMedium("kapton");
+    if (!pMedKapton)
+        Fatal("Main", "Medium kapton not found");
+    
+    // mylar
+    FairGeoMedium* mMylar = geoMedia->getMedium("mylar");
+    if (!mMylar)
+        Fatal("Main", "FairMedium mylar not found");
+    geoBuild->createMedium(mMylar);
+    TGeoMedium* pMedMylar = gGeoMan->GetMedium("mylar");
+    if (!pMedMylar)
+        Fatal("Main", "Medium mylar not found");
+    
+    // gold
+    FairGeoMedium* mGold = geoMedia->getMedium("gold");
+    if (!mGold)
+        Fatal("Main", "FairMedium gold not found");
+    geoBuild->createMedium(mGold);
+    TGeoMedium* pMedGold = gGeoMan->GetMedium("gold");
+    if (!pMedGold)
+        Fatal("Main", "Medium gold not found");
+    
+    // aluminium
     FairGeoMedium* mAl = geoMedia->getMedium("aluminium");
     if (!mAl)
         Fatal("Main", "FairMedium aluminium not found");
     geoBuild->createMedium(mAl);
-    TGeoMedium* pAlHousing = gGeoMan->GetMedium("aluminium");
-    if (!pAlHousing)
+    TGeoMedium* pMedAl = gGeoMan->GetMedium("aluminium");
+    if (!pMedAl)
         Fatal("Main", "Medium aluminium not found");
-
-    FairGeoMedium* mSteel = geoMedia->getMedium("Steel");
-    if (!mSteel)
-        Fatal("Main", "FairMedium Steel not found");
-    geoBuild->createMedium(mSteel);
-    TGeoMedium* pMedSteel = gGeoMan->GetMedium("Steel");
-    if (!pMedSteel)
-        Fatal("Main", "Medium Steel not found");
-
-    FairGeoMedium* mHe = geoMedia->getMedium("helium");
-    if (!mHe)
-        Fatal("Main", "FairMedium helium not found");
-    geoBuild->createMedium(mHe);
-    TGeoMedium* pMed4 = gGeoMan->GetMedium("helium");
-    if (!pMed4)
-        Fatal("Main", "Medium helium not found");
-
-    FairGeoMedium* mBeryllium = geoMedia->getMedium("beryllium");
-    if (!mBeryllium)
-        Fatal("Main", "FairMedium beryllium not found");
-    geoBuild->createMedium(mBeryllium);
-    TGeoMedium* pMedBe = gGeoMan->GetMedium("beryllium");
-    if (!pMedBe)
-        Fatal("Main", "Medium beryllium not found");
-
-    FairGeoMedium* mCopper = geoMedia->getMedium("copper");
-    if (!mCopper)
+    
+    // cerium oxide
+    FairGeoMedium* mCeO = geoMedia->getMedium("cerium_oxide");
+    if (!mCeO)
+        Fatal("Main", "FairMedium cerium_oxide not found");
+    geoBuild->createMedium(mCeO);
+    TGeoMedium* pMedCeO = gGeoMan->GetMedium("cerium_oxide");
+    if (!pMedCeO)
+        Fatal("Main", "Medium cerium_oxide not found");
+    
+    // uranium oxide
+    FairGeoMedium* mUO = geoMedia->getMedium("uranium_oxide");
+    if (!mUO)
+        Fatal("Main", "FairMedium uranium_oxide not found");
+    geoBuild->createMedium(mUO);
+    TGeoMedium* pMedUO = gGeoMan->GetMedium("uranium_oxide");
+    if (!pMedUO)
+        Fatal("Main", "Medium uranium_oxide not found");
+    
+    // copper
+    FairGeoMedium* mCu = geoMedia->getMedium("copper");
+    if (!mCu)
         Fatal("Main", "FairMedium copper not found");
-    geoBuild->createMedium(mCopper);
+    geoBuild->createMedium(mCu);
     TGeoMedium* pMedCu = gGeoMan->GetMedium("copper");
     if (!pMedCu)
-        Fatal("Main", "Medium copper not found");
-    // --------------------------------------------------------------------------
+    Fatal("Main", "Medium copper not found");
+    gGeoMan = new TGeoManager("PPACgeom", "PPAC geometry");
+    std::cout << "Materials implemented" << std::endl;
+    
+
 
     // --------------   Create geometry and top volume  -------------------------
     gGeoMan = static_cast<TGeoManager*>(gROOT->FindObject("FAIRGeom"));
+
+    if (!gGeoMan)
+	return;
+
     gGeoMan->SetName("NTOFgeom");
     auto* top = new TGeoVolumeAssembly("TOP");
     gGeoMan->SetTopVolume(top);
-
-    // --------------------------------------------------------------------------
-    auto* pWorld = new TGeoVolumeAssembly("nToFWorld");
-
-    auto* t0 = new TGeoCombiTrans();
-    t0->RegisterYourself();
-
+    
     // defining top volume
-    top->AddNode(pWorld, 0, t0);
+    
+    auto* worldShape = new TGeoBBox("WorldBox", worldX/2., worldY/2., worldZ/2.);
+    auto* worldVol = new TGeoVolume("World", worldShape, pMedOcto); // should I fill it with gas? only parametrize fission chamber
+    worldVol->SetLineColor(kBlack);
+    top->AddNode(worldVol, 1);
 
-    double anode_length = 40.; // cm
+    auto* ppacShape = new TGeoBBox("PPACBox", ppac_x/2.0, ppac_y/2.0, ppac_z/2.0);
+    auto* ppacVol = new TGeoVolume("PPAC", ppacShape, pMedOcto);
+    ppacVol->SetLineColor(kCyan);
 
-    std::vector<TGeoTubeSeg*> rings = { new TGeoTubeSeg("Ring1_section",
-                                                        1.2,               // rmin
-                                                        4.6,               // rmax
-                                                        anode_length / 2., // dz (half-length in z)
-                                                        0.,                // phi start
-                                                        360. / 12.),       // phi end
+    worldVol->AddNode(ppacVol,1,new TGeoTranslation(0.,0.,0.));
 
-                                        new TGeoTubeSeg("Ring2_section", 4.6, 8.5, anode_length / 2., 0., 360. / 8.),
+    auto* mylarShape = new TGeoBBox("mylarBox", ppac_x/2.0,ppac_y/2., mylar_thickness/2.0);
+    auto* cathode_y = new TGeoVolume("cathode_y", mylarShape, pMedMylar);
+    auto* anode = new TGeoVolume("anode", mylarShape, pMedMylar);
+    auto* cathode_x = new TGeoVolume("cathode_x", mylarShape, pMedMylar);
+    std::cout << "Detector implemented" << std::endl;
+    cathode_y->SetLineColor(kBlue);
+    anode->SetLineColor(kRed);
+    cathode_x->SetLineColor(kBlue);
 
-                                        new TGeoTubeSeg("Ring3_section", 8.6, 12.5, anode_length / 2., 0., 360. / 8.),
+    cathode_y->SetVisLeaves(kTRUE);
+    cathode_x->SetVisLeaves(kTRUE);
+    anode->SetVisLeaves(kTRUE);
 
-                                        new TGeoTubeSeg("Ring4_section", 12.6, 16.5, anode_length / 2., 0., 360. / 8.),
+    double z_cathode_y = -gas_gap;
+    double z_anode = 0.;
+    double z_cathode_x = gas_gap;
 
-                                        new TGeoTubeSeg("Ring5_section", 16.6, 20.5, anode_length / 2., 0., 360. / 8.),
+    ppacVol->AddNode(cathode_y, 1, new TGeoTranslation(0.,0.,z_cathode_y));
+    ppacVol->AddNode(cathode_x, 1, new TGeoTranslation(0.,0.,z_cathode_x));
+    ppacVol->AddNode(anode, 1, new TGeoTranslation(0.,0.,z_anode));
+    
 
-                                        new TGeoTubeSeg("Ring6_section", 20.6, 24.5, anode_length / 2., 0., 360. / 6.),
 
-                                        new TGeoTubeSeg("Ring7_section", 24.6, 28.5, anode_length / 2., 0., 360. / 7.),
 
-                                        new TGeoTubeSeg(
-                                            "Ring8_section", 28.6, 30.9, anode_length / 2., 0., 360. / 6.) };
-
-    std::vector<int> nb_pads_ring = { 12, 8, 8, 8, 8, 6, 7, 6 };
-    std::vector<int> offset_phi = { -30, 0, 15, 30, 0, 20, 0, 40 };
-
-    auto* Section = new TGeoVolumeAssembly("Section");
-
-    auto* cyl = new TGeoTube("Ring1_inner",
-                             0,                  // rmin
-                             1.19,               // rmax
-                             anode_length / 2.); // dz (half-length in z)
-
-    auto secinner1 = new TGeoVolume("Ring1_Pad13", cyl, pMed4);
-    secinner1->SetVisLeaves(kTRUE);
-    secinner1->SetLineColor(34);
-
-    auto secinner2 = new TGeoVolume("Ring1_Pad77", cyl, pMed4);
-    secinner2->SetVisLeaves(kTRUE);
-    secinner2->SetLineColor(34);
-
-    int padval = 1;
-    for (int r = 0; r < 8; r++)
-    {
-        for (int s = 0; s < (r == 0 ? nb_pads_ring[r] + 1 : nb_pads_ring[r]); s++)
-        {
-            TString name;
-            name.Form("Ring%d_Pad%d", r + 1, padval);
-            if (padval != 13)
-            {
-                auto section = new TGeoVolume(name.Data(), rings[r], pMed4);
-                section->SetVisLeaves(kTRUE);
-                section->SetLineColor(r + 1);
-
-                auto rot = new TGeoRotation();
-                rot->RotateZ(offset_phi[r] + s * 360. / nb_pads_ring[r]);
-                rot->RotateY(180);
-
-                Section->AddNode(section, 0, new TGeoCombiTrans(0., 0., -anode_length / 2. - 0.75, rot));
-            }
-            else
-            {
-                Section->AddNode(secinner1, 0, new TGeoCombiTrans(0., 0., -anode_length / 2. - 0.75, fRefRot));
-            }
-
-            padval++;
-        }
-    }
-
-    for (int r = 0; r < 8; r++)
-    {
-        for (int s = 0; s < (r == 0 ? nb_pads_ring[r] + 1 : nb_pads_ring[r]); s++)
-        {
-            TString name;
-            name.Form("Ring%d_Pad%d", r + 1, padval);
-            if (padval != 77)
-            {
-                auto section = new TGeoVolume(name.Data(), rings[r], pMed4);
-                section->SetVisLeaves(kTRUE);
-                section->SetLineColor(r + 1);
-
-                auto rot = new TGeoRotation();
-                rot->RotateZ(offset_phi[r] + s * 360. / nb_pads_ring[r]);
-                rot->RotateY(180);
-                rot->RotateX(180.);
-
-                Section->AddNode(section, 0, new TGeoCombiTrans(0., 0., anode_length / 2. + 0.75, rot));
-            }
-            else
-            {
-                Section->AddNode(secinner2, 0, new TGeoCombiTrans(0., 0., anode_length / 2. + 0.75, fRefRot));
-            }
-
-            padval++;
-        }
-    }
-
-    pWorld->AddNode(Section, 1, t0);
-
-    // ---------------   Finish   -----------------------------------------------
+    std::cout << "Closing geometry" <<std::endl;
     gGeoMan->CloseGeometry();
-    gGeoMan->CheckOverlaps(0.001);
+    gGeoMan->CheckOverlaps(1e-5);
     gGeoMan->PrintOverlaps();
     gGeoMan->Test();
 
-    TFile geoFile(geoFileName, "RECREATE");
+    TFile geoFile("ola.root", "RECREATE");
     top->Write();
-    // top->Draw("ogl");
     geoFile.Close();
-    std::cout << "\033[34m Creating geometry:\033[0m "
-              << "\033[33m" << geoFileName << " \033[0m" << std::endl;
+
+    std::cout << "\033[34mCreating geometry:\033[0m "
+              << "\033[33m" << geoFileName << "\033[0m" << std::endl;
     std::cout << "Macro finished successfully." << std::endl;
-    gApplication->Terminate();
+    //gApplication->Terminate();
 }
