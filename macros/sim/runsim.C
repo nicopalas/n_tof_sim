@@ -38,7 +38,7 @@ void runsim(Int_t nEvents = 1)
     TString generator2 = "inclroot";
     TString fGenerator = generator2;
 
-    TString fPpacsGeo = "target_area_ppacs_v2026.04.geo.root";
+    TString fPpacsGeo = "/nucl_lustre/nicolas_sanchez/n_tof_sim/macros/ola.root";
 
     // Input event file
     TString fEventFile;
